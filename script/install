@@ -1,4 +1,8 @@
 ########################################
+# vim python tab 4 space
+########
+# append "set ts=4 \n set expandtab" to ~/.vimrc
+########################################
 # install pyspider
 # https://github.com/binux/pyspider
 ########
