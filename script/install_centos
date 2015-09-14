@@ -1,0 +1,40 @@
+########################################
+# install pyspider
+# https://github.com/binux/pyspider
+########
+yum install pip
+yum install python python-dev python-distribute python-pip \
+libcurl4-openssl-dev libxml2-dev libxslt1-dev python-lxml
+# no six
+easy_install --upgrade six
+# pkg_resources.DistributionNotFound: click>=3.3
+pip install -U setuptools
+pip install pyspider
+########
+# run
+pyspider
+########################################
+# install mysql
+########
+rpm -e mysql 
+yum install -y mysql-server mysql mysql-deve
+service mysqld start
+mysqladmin -u root password '123456'
+service mysqld restart
+echo "/usr/bin/mysql start" >> /etc/rc.d/rc.local
+########################################
+# centos ssh direct login 
+########
+# update /etc/ssh/sshd_config, remove annotation
+#RSAAuthentication yes
+#PubkeyAuthentication yes
+#AuthorizedKeysFile  .ssh/authorized_keys
+# update /etc/ssh/ssh_config, change to
+# StrictHostKeyChecking no
+cd ~
+ssh-keygen -t dsa
+cat .ssh/id_rsa.pub >> .ssh/authorized_keys
+chmod 700 .ssh
+chmod 644 .ssh/authorized_keys
+/etc/init.d/sshd restart
+########################################
