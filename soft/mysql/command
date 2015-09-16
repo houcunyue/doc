@@ -9,5 +9,14 @@ mysql -u user -p
 # input password
 source /*.sql
 ##############################################
+# 创建用户
+########
+mysql -u user -p
+# input password
+use mysql
+insert into user(Host,User,Password) values("localhost","sqoop",password("sqoop"));
+grant all PRIVILEGES on *.* to sqoop@'%' identified by 'sqoop'; # 允许在任何主机访问任何数据库
+Query OK, 0 rows affected (0.00 sec)
+##############################################
 
 
