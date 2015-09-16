@@ -1,3 +1,10 @@
 CentOS release 6.7 (Final) 2.6.32-431.el6.x86_64
 mysql  Ver 14.14 Distrib 5.5.42, for Linux (x86_64) using readline 5.1
+Hadoop 2.4.0.2.1.5.0-695
 Hive 0.13.0.2.1.5.0-695
+Sqoop 1.4.4.2.1.5.0-695
+
+# 查看mysql数据库列表
+sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root --P
+# 将mysql数据库导入到hive中（hive需预创建数据库？）
+sqoop import-all-tables --connect jdbc:mysql://datanode9.bitauto.dmp:3306/hd_huodong --username sqoop --password houcy --hive-database hd_huodong --hive-import
