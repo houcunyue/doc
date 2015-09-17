@@ -6,5 +6,10 @@ Sqoop 1.4.4.2.1.5.0-695
 
 # 查看mysql数据库列表
 sqoop list-databases --connect jdbc:mysql://localhost:3306/ --username root --P
-# 将mysql数据库导入到hive中（hive需预创建数据库？）
+
+# 将mysql数据库导入到hive中（hive需预创建数据库）
 sqoop import-all-tables --connect jdbc:mysql://datanode9.bitauto.dmp:3306/hd_huodong --username sqoop --password houcy --hive-database hd_huodong --hive-import
+# 若hive中已存在该表：--hive-overwrite 若输出更多执行信息：--verbose 若不能导入所有表（某个表没有主键，也可设置--split-by）：-m 1
+
+# 将mysql表导入hive中
+sqoop import --connect jdbc:mysql://datanode9.bitauto.dmp:3306/hd_huodong --username sqoop --password houcy --table test --hive-database hd_huodong --hive-table test --hive-import
