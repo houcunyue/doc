@@ -8,8 +8,6 @@ import re
 import json
 import urllib
 from pyspider.image_server import *
-import logging
-logger = logging.getLogger("image_server")
 
 class Handler(BaseHandler):
     crawl_config = {
@@ -54,7 +52,7 @@ class Handler(BaseHandler):
         detail = {
             "url": response.url,
             "title": response.doc('.title').text(),
-            "html": response.doc('#article_text').html(),
+            "news": clean(response.doc('#article_text').html()),
             "images": [x.attr("src") for x in response.doc("#article_text img").items()],
             "source": response.doc('td > a').text(),
             "date": response.doc('.pubTime').text(),
@@ -64,67 +62,15 @@ class Handler(BaseHandler):
         if next.text() == u'下一页':
             self.crawl(next.attr.href, callback=self.next_page, save = detail)
         else:
-            return self.extract_info(detail)
+            return extract_info(detail)
     
     @config(priority=1)
     def next_page(self, response):
         detail = response.save
-        detail["html"] += response.doc('#article_text').html()
+        detail["news"] += clean(response.doc('#article_text').html())
         detail["images"] += [x.attr("src") for x in response.doc("#article_text img").items()]
         next = response.doc('.page-ctrl a:last')
         if next.text() == u'下一页':
             self.crawl(next.attr.href, callback=self.next_page, save = detail)
         else:
-           return self.extract_info(detail)
-        
-    def clean(self,h):
-        r = re.compile(r'[\r\n\t]')
-        h = r.sub('',h)
-        r = re.compile(r'</?a.+?>')
-        h = r.sub('',h)
-        r = re.compile(r'<!--.*?-->')
-        h = r.sub('',h)
-        r = re.compile(r'<script>.*?</script>')
-        h = r.sub('',h)
-        r = re.compile(r'&#\d+;')
-        h = r.sub('',h)
-        r = re.compile(r'</?div.*?>')
-        h = r.sub('',h)
-        r = re.compile(r'</?personname.*?>')
-        h = r.sub('',h)
-        r = re.compile(r'</?b.*?>')
-        h = r.sub('',h)
-        r = re.compile(r'</?strong.*?>')
-        h = r.sub('',h)
-        r = re.compile(r'</?span.*?>')
-        h = r.sub('',h)
-        r = re.compile(r' (class|id|style|alt|data-link)=\".*?\"')
-        h = r.sub('',h)
-        r = re.compile(r'\s{2,}')
-        h = r.sub('',h)
-        r = re.compile(r'<p/>')
-        h = r.sub('',h)
-        r = re.compile(r'<p>\s*?</p>')
-        h = r.sub('',h)
-        r = re.compile(ur'\u3000')
-        h = r.sub('',h)
-        r = re.compile(ur'\u3000')
-        h = r.sub('',h)
-        r = re.compile(ur'\xa0')
-        h = r.sub('',h)
-        return h
-    def extract_info(self, detail):
-        ori_images = detail["images"]
-        try:
-            params = urllib.urlencode({"images":json.dumps(ori_images)})
-            page = urllib.urlopen("%s?%s" % (image_server, params))
-            rep = page.read()
-            new_images = json.loads(rep)
-            for i in range(0, len(ori_images)):
-                detail["html"] = detail["html"].replace(ori_images[i], new_images[i])
-        except Exception, e:
-            rep = ori_images;
-            logger.debug("image server exception:%s", e)
-        detail["news"] = self.clean(detail["html"])
-        detail["images"] = rep
-        return detail
+           return extract_info(detail)
