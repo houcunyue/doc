@@ -1,44 +1,62 @@
-# coding:utf-8
-from BaseHTTPServer import HTTPServer,BaseHTTPRequestHandler
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+# vim: set et sw=4 ts=4 sts=4 ff=unix fenc=utf8:
+# Author: Binux<i@binux.me>
+#     http://binux.me
+# Created on 2014-02-16 23:12:48
+import re
 import urllib
-import urlparse
-import hashlib
 import json
 
-md_5 = hashlib.md5()
+image_server="http://192.168.56.104:8765/"
 
-class RequestHandler(BaseHTTPRequestHandler):
-  def down_image(self, url, name):
-    image = urllib.urlopen(url).read()
-    f = file("/root/houcy/imagesever/images/" + name, "wb")
-    f.write(image)
-    f.close()
-  def _writeheaders(self):
-    #print self.headers
-    self.send_response(200);
-    self.send_header('Content-type','text/html');
-    self.end_headers()
-  def do_Head(self):
-    self._writeheaders()
-  def do_GET(self):
-    self._writeheaders()
-    
-    result = urlparse.urlparse(self.path)
-    params = urlparse.parse_qs(result.query, True)
-    rep = []
-    images = json.loads(params['images'][0])#.replace("'", "\""))
-    for image in images:
-        print image
-        md_5.update(image)
-        new_name = md_5.hexdigest()[8:24]  + ".jpg"
-        self.down_image(image, new_name)
-        new_url = "http://192.168.56.104:1234/" + new_name
-        print "new:" + new_url
-        rep.append(new_url)
+def extract_info(detail):
+    ori_images = detail["images"]
+    try:
+        params = urllib.urlencode({"images":json.dumps(ori_images)})
+        page = urllib.urlopen("%s?%s" % (image_server, params))
+        rep = page.read()
+        new_images = json.loads(rep)
+        for i in range(0, len(ori_images)):
+            detail["news"] = detail["news"].replace(ori_images[i], new_images[i])
+    except Exception, e:
+        rep = ori_images;
+    detail["images"] = rep
+    return detail
 
-
-    self.wfile.write(json.dumps(rep))
-
-addr = ('',8765)
-server = HTTPServer(addr,RequestHandler)
-server.serve_forever()
+def clean(h):
+    r = re.compile(r'[\r\n\t]')
+    h = r.sub('',h)
+    r = re.compile(r'</?a.+?>')
+    h = r.sub('',h)
+    r = re.compile(r'<!--.*?-->')
+    h = r.sub('',h)
+    r = re.compile(r'<script>.*?</script>')
+    h = r.sub('',h)
+    r = re.compile(r'&#\d+;')
+    h = r.sub('',h)
+    r = re.compile(r'</?div.*?>')
+    h = r.sub('',h)
+    r = re.compile(r'</?personname.*?>')
+    h = r.sub('',h)
+    r = re.compile(r'</?b.*?>')
+    h = r.sub('',h)
+    r = re.compile(r'</?strong.*?>')
+    h = r.sub('',h)
+    r = re.compile(r'</?span.*?>')
+    h = r.sub('',h)
+    r = re.compile(r' (class|id|style|alt|data-link)=\".*?\"')
+    h = r.sub('',h)
+    r = re.compile(r'\s{2,}')
+    h = r.sub('',h)
+    r = re.compile(r'<p/>')
+    h = r.sub('',h)
+    r = re.compile(r'<p>\s*?</p>')
+    h = r.sub('',h)
+    r = re.compile(ur'\u3000')
+    h = r.sub('',h)
+    r = re.compile(ur'\u3000')
+    h = r.sub('',h)
+    r = re.compile(ur'\xa0')
+    h = r.sub('',h)
+    return h
