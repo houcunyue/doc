@@ -1,0 +1,44 @@
+# coding:utf-8
+from BaseHTTPServer import HTTPServer,BaseHTTPRequestHandler
+import urllib
+import urlparse
+import hashlib
+import json
+
+md_5 = hashlib.md5()
+
+class RequestHandler(BaseHTTPRequestHandler):
+  def down_image(self, url, name):
+    image = urllib.urlopen(url).read()
+    f = file("/root/houcy/imagesever/images/" + name, "wb")
+    f.write(image)
+    f.close()
+  def _writeheaders(self):
+    #print self.headers
+    self.send_response(200);
+    self.send_header('Content-type','text/html');
+    self.end_headers()
+  def do_Head(self):
+    self._writeheaders()
+  def do_GET(self):
+    self._writeheaders()
+    
+    result = urlparse.urlparse(self.path)
+    params = urlparse.parse_qs(result.query, True)
+    rep = []
+    images = json.loads(params['images'][0])#.replace("'", "\""))
+    for image in images:
+        print image
+        md_5.update(image)
+        new_name = md_5.hexdigest()[8:24]  + ".jpg"
+    #    self.down_image(image, new_name)
+        new_url = "http://192.168.56.104:1234/" + new_name
+        print "new:" + new_url
+        rep.append(new_url)
+
+
+    self.wfile.write(json.dumps(rep))
+
+addr = ('',8765)
+server = HTTPServer(addr,RequestHandler)
+server.serve_forever()
