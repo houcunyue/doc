@@ -1,0 +1,35 @@
+#!/usr/local/bin/python
+# coding:utf-8
+__author__ = 'mingrui'
+import tornado.ioloop
+import tornado.web
+import tornado.escape
+import os
+import json
+import logging
+import torndb
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('syn')
+class MainHandler(tornado.web.RequestHandler):
+    def get(self, id):
+        db = torndb.Connection("192.168.56.104", "resultdb", "spider", "yiche123")
+        result = db.get("select content from news where id=%s",id)
+        if result is not None:
+            json = tornado.escape.json_decode(result["content"])
+            json["id"]=id
+            json = tornado.escape.json_encode(json)
+            self.set_header("Content-Type", "application/json; charset=UTF-8")
+            self.write(json)
+            db.update("update news set syn_count=syn_count+1 where id=%s", id)
+        db.close()
+
+application = tornado.web.Application([
+    (r"/tad/v1/synews/id/(\S{36})", MainHandler),
+],
+    template_path=os.path.join(os.path.dirname(__file__), "templates"),
+    static_path=os.path.join(os.path.dirname(__file__), "static"),
+)
+
+if __name__ == "__main__":
+    application.listen(18888)
+    tornado.ioloop.IOLoop.current().start()
