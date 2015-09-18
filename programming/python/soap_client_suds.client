@@ -1,0 +1,25 @@
+#coding:utf-8
+__author__ = 'houcunyue'
+from suds.client import Client
+import logging
+from suds.sax.element import Element
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('suds.client').setLevel(logging.DEBUG)
+url = 'http://127.0.0.1:9009/services/DocsService?wsdl'
+client = Client(url)
+class News():
+    def add(self,id):
+        client.service.recevieMessage("""<Messages>
+    <Header>
+        <AppId>501</AppId>
+        <EntityType>other_news</EntityType>
+        <OperateType>Add</OperateType>
+    </Header>
+    <Body>
+        <EntityId>%s</EntityId>
+    </Body>
+</Messages>"""%id)
+
+if __name__ =='__main__':
+    news = News()
+    news.add("asdfasdfsadfsadfsdfsd")
