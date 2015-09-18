@@ -6,9 +6,16 @@
 # Created on 2014-02-16 23:12:48
 import re
 import urllib
+import uuid
+import time
 import json
+from suds.client import Client
+import MySQLdb
+import torndb
 
 image_server="http://192.168.56.104:8765/"
+url = 'http://sync.ycapp.yiche.com/Services/OtherNewSyncsvr.asmx?WSDL'
+#client = Client(url)
 
 def extract_info(detail):
     ori_images = detail["images"]
@@ -20,9 +27,39 @@ def extract_info(detail):
         for i in range(0, len(ori_images)):
             detail["news"] = detail["news"].replace(ori_images[i], new_images[i])
     except Exception, e:
-        rep = ori_images;
+        rep = ori_images
     detail["images"] = rep
+    id = str(uuid.uuid1())  
+    content = json.dumps(detail)
+    time_stamp = time.time()
+    if save_news(id, content, time_stamp):
+        print "save"
+        #send_uuid(id)
     return detail
+
+sql = "insert into news (id, content, time) values (%s, %s, %s)"
+def save_news(id, content, time_stamp):
+    page = urllib.urlopen("http://192.168.56.104:8764/?images=startsave")
+    rep = page.read()
+    try:
+        db = torndb.Connection("192.168.56.104", "resultdb", "spider", "yiche123")
+        db.insert(sql, id, content, time_stamp)
+        db.close()
+        return True
+    except Exception, e:
+        return False
+
+def send_uuid(id):  
+    client.service.recevieMessage("""<Messages>
+        <Header>
+            <AppId>501</AppId>
+            <EntityType>other_news</EntityType>
+            <OperateType>Add</OperateType>
+        </Header>
+        <Body>
+            <EntityId>%s</EntityId>
+        </Body>
+    </Messages>"""%id)
 
 def clean(h):
     r = re.compile(r'[\r\n\t]')
