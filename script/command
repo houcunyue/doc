@@ -1,2 +1,3 @@
 查看linux版本： uname -a
-查看linux发行版本： lsb_release -a
+查看linux(ubuntu)发行版本： lsb_release -a
+查看centos发行版本： cat /etc/redhat-release
