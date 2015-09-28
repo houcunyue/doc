@@ -1,44 +1,80 @@
-# coding:utf-8
-from BaseHTTPServer import HTTPServer,BaseHTTPRequestHandler
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+# vim: set et sw=4 ts=4 sts=4 ff=unix fenc=utf8:
+# Author: Binux<i@binux.me>
+#     http://binux.me
+# Created on 2014-02-16 23:12:48
+import re
+import urllib2
 import urllib
-import urlparse
-import hashlib
+import uuid
+import time
 import json
+from suds.client import Client
+import MySQLdb
+import torndb
+import logging
+import traceback
 
-md_5 = hashlib.md5()
+image_server="http://192.168.56.104:8765/"
+url = 'http://sync.ycapp.yiche.com/Services/OtherNewSyncsvr.asmx?WSDL'
+LOG_FILE = '/root/houcy/logs/spider.log'
+fmt = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s'
+logging.basicConfig(level = logging.INFO, format = fmt, datefmt = '%a, %d %b %Y %H:%M:%S', filename = LOG_FILE, filemode = 'w')
+logging.getLogger('spider')
 
-class RequestHandler(BaseHTTPRequestHandler):
-  def down_image(self, url, name):
-    image = urllib.urlopen(url).read()
-    f = file("/root/houcy/imagesever/images/" + name, "wb")
-    f.write(image)
-    f.close()
-  def _writeheaders(self):
-    #print self.headers
-    self.send_response(200);
-    self.send_header('Content-type','text/html');
-    self.end_headers()
-  def do_Head(self):
-    self._writeheaders()
-  def do_GET(self):
-    self._writeheaders()
-    
-    result = urlparse.urlparse(self.path)
-    params = urlparse.parse_qs(result.query, True)
-    rep = []
-    images = json.loads(params['images'][0])#.replace("'", "\""))
-    for image in images:
-        print image
-        md_5.update(image)
-        new_name = md_5.hexdigest()[8:24]  + ".jpg"
-    #    self.down_image(image, new_name)
-        new_url = "http://192.168.56.104:1234/" + new_name
-        print "new:" + new_url
-        rep.append(new_url)
+def extract_info(detail, website = ""):
+    ori_images = detail["images"]
+    if len(ori_images) == 0:
+        rep = ori_images
+    else:
+        try:
+            if website =="":
+                params = urllib.urlencode({"images":json.dumps(ori_images)})
+            else:
+                temp_images = []
+                for o_i in ori_images:
+                    if o_i.startswith("http"):
+                        temp_images.append(website)
+                    else:
+                        temp_images.append(website + o_i)
+                params = urllib.urlencode({"images":json.dumps(temp_images)})
+            page = urllib2.urlopen("%s?%s" % (image_server, params), timeout = 120)
+            rep = page.read()
+            new_images = json.loads(rep)
+            for i in range(0, len(ori_images)):
+                detail["news"] = detail["news"].replace(ori_images[i], new_images[i])
+        except Exception, e:
+            logging.warn("%s, Exception:%s" % (json.dumps(ori_images), traceback.format_exc()))
+            rep = ori_images
+    detail["images"] = rep
+    id = str(uuid.uuid1())  
+    content = json.dumps(detail)
+    time_stamp = time.time()
+    if save_news(id, content, time_stamp):
+        print "save"
+        #send_uuid(id)
+    return detail
 
+sql = "insert into news (id, content, time) values (%s, %s, %s)"
+def save_news(id, content, time_stamp):
+    try:
+        db = torndb.Connection("192.168.56.104", "resultdb", "spider", "yiche123")
+        db.insert(sql, id, content, time_stamp)
+        db.close()
+        return True
+    except Exception, e:
+        return False
 
-    self.wfile.write(json.dumps(rep))
-
-addr = ('',8765)
-server = HTTPServer(addr,RequestHandler)
-server.serve_forever()
+def send_uuid(id):  
+    client = Client(url)
+    client.service.recevieMessage("""<Messages>
+        <Header>
+            <AppId>501</AppId>
+            <EntityType>other_news</EntityType>
+            <OperateType>Add</OperateType>
+        </Header>
+        <Body>
+            <EntityId>%s</EntityId>
+        </Body>
+    </Messages>"""%id)
