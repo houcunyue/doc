@@ -5,6 +5,7 @@
 #     http://binux.me
 # Created on 2014-02-16 23:12:48
 import re
+import urllib2
 import urllib
 import uuid
 import time
@@ -12,22 +13,40 @@ import json
 from suds.client import Client
 import MySQLdb
 import torndb
+import logging
+import traceback
 
 image_server="http://192.168.56.104:8765/"
 url = 'http://sync.ycapp.yiche.com/Services/OtherNewSyncsvr.asmx?WSDL'
-#client = Client(url)
+LOG_FILE = '/root/houcy/logs/spider.log'
+fmt = '%(asctime)s - %(filename)s:%(lineno)s - %(name)s - %(message)s'
+logging.basicConfig(level = logging.INFO, format = fmt, datefmt = '%a, %d %b %Y %H:%M:%S', filename = LOG_FILE, filemode = 'w')
+logging.getLogger('spider')
 
-def extract_info(detail):
+def extract_info(detail, website = ""):
     ori_images = detail["images"]
-    try:
-        params = urllib.urlencode({"images":json.dumps(ori_images)})
-        page = urllib.urlopen("%s?%s" % (image_server, params))
-        rep = page.read()
-        new_images = json.loads(rep)
-        for i in range(0, len(ori_images)):
-            detail["news"] = detail["news"].replace(ori_images[i], new_images[i])
-    except Exception, e:
+    if len(ori_images) == 0:
         rep = ori_images
+    else:
+        try:
+            if website =="":
+                params = urllib.urlencode({"images":json.dumps(ori_images)})
+            else:
+                temp_images = []
+                for o_i in ori_images:
+                    if o_i.startswith("http"):
+                        temp_images.append(website)
+                    else:
+                        temp_images.append(website + o_i)
+                params = urllib.urlencode({"images":json.dumps(temp_images)})
+            page = urllib2.urlopen("%s?%s" % (image_server, params), timeout = 120)
+            rep = page.read()
+            new_images = json.loads(rep)
+            for i in range(0, len(ori_images)):
+                detail["news"] = detail["news"].replace(ori_images[i], new_images[i])
+        except Exception, e:
+            logging.warn("%s, Exception:%s" % (json.dumps(ori_images), traceback.format_exc()))
+            rep = ori_images
     detail["images"] = rep
     id = str(uuid.uuid1())  
     content = json.dumps(detail)
@@ -39,8 +58,6 @@ def extract_info(detail):
 
 sql = "insert into news (id, content, time) values (%s, %s, %s)"
 def save_news(id, content, time_stamp):
-    page = urllib.urlopen("http://192.168.56.104:8764/?images=startsave")
-    rep = page.read()
     try:
         db = torndb.Connection("192.168.56.104", "resultdb", "spider", "yiche123")
         db.insert(sql, id, content, time_stamp)
@@ -50,6 +67,7 @@ def save_news(id, content, time_stamp):
         return False
 
 def send_uuid(id):  
+    client = Client(url)
     client.service.recevieMessage("""<Messages>
         <Header>
             <AppId>501</AppId>
@@ -60,40 +78,3 @@ def send_uuid(id):
             <EntityId>%s</EntityId>
         </Body>
     </Messages>"""%id)
-
-def clean(h):
-    r = re.compile(r'[\r\n\t]')
-    h = r.sub('',h)
-    r = re.compile(r'</?a.+?>')
-    h = r.sub('',h)
-    r = re.compile(r'<!--.*?-->')
-    h = r.sub('',h)
-    r = re.compile(r'<script>.*?</script>')
-    h = r.sub('',h)
-    r = re.compile(r'&#\d+;')
-    h = r.sub('',h)
-    r = re.compile(r'</?div.*?>')
-    h = r.sub('',h)
-    r = re.compile(r'</?personname.*?>')
-    h = r.sub('',h)
-    r = re.compile(r'</?b.*?>')
-    h = r.sub('',h)
-    r = re.compile(r'</?strong.*?>')
-    h = r.sub('',h)
-    r = re.compile(r'</?span.*?>')
-    h = r.sub('',h)
-    r = re.compile(r' (class|id|style|alt|data-link)=\".*?\"')
-    h = r.sub('',h)
-    r = re.compile(r'\s{2,}')
-    h = r.sub('',h)
-    r = re.compile(r'<p/>')
-    h = r.sub('',h)
-    r = re.compile(r'<p>\s*?</p>')
-    h = r.sub('',h)
-    r = re.compile(ur'\u3000')
-    h = r.sub('',h)
-    r = re.compile(ur'\u3000')
-    h = r.sub('',h)
-    r = re.compile(ur'\xa0')
-    h = r.sub('',h)
-    return h
