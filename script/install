@@ -1,4 +1,49 @@
 ########################################
+# swap
+########
+#我在日常使用ubuntu时，经常要同时打开10几个窗口和应用，有时候就会发生速度变得很慢的情况，甚至系统明显反应迟钝，
+#这时一般是物理内存不够用，系统开始用换硬盘上的swap分区做虚拟内存，其速度可想而知。
+#在ubuntu里面往往不是物理内存全部耗尽采取使用swap分区，swappiness的值的大小对如何使用swap分区是有着很大的联系的。
+#swappiness=0的时候表示最大限度使用物理内存，然后才是 swap空间，swappiness=100的时候表示积极的使用swap分区，并且
+#把内存上的数据及时的搬运到swap空间里面。两个极端，对于ubuntu的默认设置，这个值等于60,建议修改为10.具#体这样做：
+#    1.查看你的系统里面的swappiness
+#      cat /proc/sys/vm/swappiness
+#     #不出意外的话，你应该看到是 60
+#    2.修改swappiness值为10
+echo "10" > /proc/sys/vm/swappiness 
+#    但是这只是临时性的修改，在你重启系统后会恢复默认的60,所以，还要做一步。在这个文档的最后加上这样一行：
+echo "vm.swappiness = 10" >> /etc/sysctl.conf
+########################################
+# open file-max
+########
+# 查看当前值
+ulimit -n
+#临时修改
+ulimit -n 70000
+#永久修改
+echo "70000"  > /proc/sys/fs/file-max 
+echo "fs.file-max = 70000" >> /etc/sysctl.conf
+echo "* soft nofile 70000" >> /etc/security/limits.conf
+echo "* hard nofile 70000" >> /etc/security/limits.conf
+echo "session required pam_limits.so" >> /etc/pam.d/common-session
+echo "ulimit -SHn 70000" >> /etc/profile
+########################################
+# time synchronization
+########
+# 查看时区
+## cat /etc/timezone
+# 修改时区
+echo "Asia/Shanghai" > /etc/timezone
+# 同步时间
+ntpdate ntp.ubuntu.com
+# 写入硬盘时间
+hwclock -w
+# master install ntp
+apt-get install -y ntp
+# slave
+echo "ntpdate master" > /etc/cron.daily/ntpdate
+chmod 755 /etc/cron.daily/ntpdate
+########################################
 # change command rm、mv、cp require confirm
 # global use:change ~/.bashrc to /etc/bashrc
 ########
@@ -46,6 +91,11 @@ cat .ssh/id_rsa.pub >> .ssh/authorized_keys
 chmod 700 .ssh
 chmod 644 .ssh/authorized_keys
 /etc/init.d/sshd restart
+########################################
+# 禁用GUEST用户登录
+#####################
+# use root
+echo "allow-guest=false" >> /etc/lightdm/lightdm.conf
 ########################################
 # install jdk
 ########
