@@ -51,7 +51,7 @@ echo -e "alias rm='rm -i'\nalias cp='cp -i'\nalias mv='mv -i'" >> ~/.bashrc
 ########################################
 # vim python tab 4 space
 ########
-echo -e "set ts=4\nset expandtab" >> ~/.vimrc
+echo -e "set ts=4\nset expandtab\nset autoindent" >> ~/.vimrc
 ########################################
 # install pyspider
 # https://github.com/binux/pyspider
