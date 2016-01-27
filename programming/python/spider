@@ -1,0 +1,28 @@
+# coding:utf-8
+
+import sys
+import re
+import urllib2
+from pyquery import PyQuery as pyq
+
+if __name__ == "__main__":
+    url = 'http://photo.bitauto.com/model/113833'
+#    url = sys.argv[1]
+    html = urllib2.urlopen(url, timeout = 3).read()
+    jq = pyq(html)
+    print jq('title').text()
+    for t in jq('.carpic_list').find('li a'):
+#    for t in jq(sys.argv[2]).find(sys.argv[3]):
+        temp = pyq(t).attr('href')
+        if not temp.startswith('http'):
+            temp = url + temp
+        print temp
+#        print re.search(r'http(s)?://(.*.com)/', temp, re.I).group(2)
+
+    url = 'http://photo.bitauto.com/picture/3999/4014532'
+    html = urllib2.urlopen(url).read()
+    jq = pyq(html)
+    print jq('#imgwrapper img').attr('src')
+    
+# http://img1.bitautoimg.com/autoalbum/files/20150427/716/14170671611294_4014532_14.jpg
+# http://img1.bitautoimg.com/autoalbum/files/20150427/716/14170671611294_4014532_1.jpg  
