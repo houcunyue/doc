@@ -18,5 +18,12 @@ insert into user(Host,User,Password) values("localhost","sqoop",password("sqoop"
 grant all PRIVILEGES on *.* to sqoop@'%' identified by 'sqoop'; # 允许在任何主机访问任何数据库
 Query OK, 0 rows affected (0.00 sec)
 ##############################################
-
+# Mysql导入 sql文件 
+######## 
+mysql -h localhost -u root -p dbname < e:\mysql\mydb2.sql 
+##############################################
+# Mysql导出 sql文件
+########
+mysqldump -h localhost -u root -p dbname mytable>e:\mytable.sql
+##############################################
 
